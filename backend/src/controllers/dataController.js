@@ -1,11 +1,51 @@
+const fs = require('fs');
 const connectToDatabase = require('../config/db');
+
+const allowedTables = [
+  'pracownik',
+  'zapomoga',
+  'pozyczka',
+  'rata_pozyczki',
+  'dofinansowanie',
+  'wydarzenie',
+  'dziecko',
+  'zyrant',
+];
+
+exports.getTableData = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy tabeli
+  if (!allowedTables.includes(tableName)) {
+    return res.status(400).json({ error: 'Invalid table name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
 
 exports.addPracownik = async (req, res) => {
   const { nazwa, numer_konta, email, telefon, adres } = req.body;
 
   const connection = await connectToDatabase();
   try {
-    const result = await connection.execute(
+    await connection.execute(
       `INSERT INTO SYSTEM.PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
        VALUES (:nazwa, :numer_konta, :email, :telefon, :adres)`,
       [nazwa, numer_konta, email, telefon, adres],
@@ -192,13 +232,12 @@ exports.addDofinansowanie = async (req, res) => {
 };
 
 
-const fs = require('fs');
 
-exports.addPracownicyFromFile = async (req, res) => {
+exports.addPracownicyFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./pracownicy.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/pracownicy.json', 'utf8'));
 
     for (const pracownik of data) {
       const { nazwa, numer_konta, email, telefon, adres } = pracownik;
@@ -220,11 +259,11 @@ exports.addPracownicyFromFile = async (req, res) => {
   }
 };
 
-exports.addDzieciFromFile = async (req, res) => {
+exports.addDzieciFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./dzieci.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/dzieci.json', 'utf8'));
 
     for (const dziecko of data) {
       const { nazwa, pracownik_id } = dziecko;
@@ -246,11 +285,11 @@ exports.addDzieciFromFile = async (req, res) => {
   }
 };
 
-exports.addPozyczkiFromFile = async (req, res) => {
+exports.addPozyczkiFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./pozyczki.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/pozyczki.json', 'utf8'));
 
     for (const pozyczka of data) {
       const { rodzaj, wysokosc, pracownik_id } = pozyczka;
@@ -277,11 +316,11 @@ exports.addPozyczkiFromFile = async (req, res) => {
   }
 };
 
-exports.addRatPozyczkiFromFile = async (req, res) => {
+exports.addRatPozyczkiFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./rata_pozyczki.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/rata_pozyczki.json', 'utf8'));
 
     for (const rata of data) {
       const { wysokosc, oplacona, termin_platnosci, pozyczka_id } = rata;
@@ -307,11 +346,11 @@ exports.addRatPozyczkiFromFile = async (req, res) => {
   }
 };
 
-exports.addZyranciFromFile = async (req, res) => {
+exports.addZyranciFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./zyranci.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/zyranci.json', 'utf8'));
 
     for (const zyrant of data) {
       const { pozyczka_id, pracownik_id } = zyrant;
@@ -333,11 +372,11 @@ exports.addZyranciFromFile = async (req, res) => {
   }
 };
 
-exports.addZapomogiFromFile = async (req, res) => {
+exports.addZapomogiFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./zapomogi.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/zapomogi.json', 'utf8'));
 
     for (const zapomoga of data) {
       const { cel, wysokosc, pracownik_id } = zapomoga;
@@ -359,11 +398,11 @@ exports.addZapomogiFromFile = async (req, res) => {
   }
 };
 
-exports.addWydarzeniaFromFile = async (req, res) => {
+exports.addWydarzeniaFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./wydarzenia.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/wydarzenia.json', 'utf8'));
 
     for (const wydarzenie of data) {
       const { nazwa_wydarzenia } = wydarzenie;
@@ -385,11 +424,11 @@ exports.addWydarzeniaFromFile = async (req, res) => {
   }
 };
 
-exports.addDofinansowaniaFromFile = async (req, res) => {
+exports.addDofinansowaniaFromFile = async (_req, res) => {
   const connection = await connectToDatabase();
   try {
     // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./dofinansowanie.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./assets/dofinansowanie.json', 'utf8'));
 
     for (const dofinansowanie of data) {
       const { odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id } = dofinansowanie;
