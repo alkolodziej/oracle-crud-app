@@ -877,3 +877,225 @@ exports.updateDofinansowanie = async (req, res) => {
   }
 };
 
+
+exports.getPracownikDofinansowanie = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_pracownik_dofinansowanie') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+exports.getPracownikPozyczka = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_pracownik_pozyczka') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+exports.getPracownikZapomoga = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_pracownik_zapomoga') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+exports.getPozyczkaRata = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_pozyczka_rata') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+exports.getPracownikDziecko = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_pracownik_dziecko') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+exports.getDofinansowanieDziecko = async (req, res) => {
+  const { tableName } = req.params;
+
+  // Sprawdzenie poprawności nazwy widoku
+  if (tableName !== 'v_dofinansowanie_dziecko') {
+    return res.status(400).json({ error: 'Invalid view name.' });
+  }
+
+  let connection;
+  try {
+    connection = await connectToDatabase();
+    const query = `SELECT * FROM ${tableName}`;
+    const result = await connection.execute(query);
+    res.json({ data: result.rows, columns: result.metaData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data.' });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+};
+
+-- Widok łączący pracowników z ich dofinansowaniami
+CREATE OR REPLACE VIEW v_pracownik_dofinansowanie AS
+SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+       d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, d.dziecko_id, d.wydarzenie_id
+FROM pracownik p
+JOIN dofinansowanie d ON p.id = d.pracownik_id;
+
+-- Widok łączący pracowników z pożyczkami
+CREATE OR REPLACE VIEW v_pracownik_pozyczka AS
+SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+       po.id AS pozyczka_id, po.rodzaj, po.wysokosc
+FROM pracownik p
+JOIN pozyczka po ON p.id = po.pracownik_id;
+
+-- Widok łączący pracowników z ich zapomogami
+CREATE OR REPLACE VIEW v_pracownik_zapomoga AS
+SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+       z.id AS zapomoga_id, z.cel, z.wysokosc
+FROM pracownik p
+JOIN zapomoga z ON p.id = z.pracownik_id;
+
+-- Widok łączący pożyczki z ratami pożyczek
+CREATE OR REPLACE VIEW v_pozyczka_rata AS
+SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
+       r.id AS rata_id, r.wysokosc AS rata_wysokosc, r.oplacona, r.termin_platnosci
+FROM pozyczka po
+JOIN rata_pozyczki r ON po.id = r.pozyczka_id;
+
+-- Widok łączący pracowników z ich dziećmi
+CREATE OR REPLACE VIEW v_pracownik_dziecko AS
+SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+       d.id AS dziecko_id, d.nazwa AS dziecko_nazwa
+FROM pracownik p
+JOIN dziecko d ON p.id = d.pracownik_id;
+
+-- Widok łączący dofinansowanie z dzieckiem (gdzie odbiorca = dziecko)
+CREATE OR REPLACE VIEW v_dofinansowanie_dziecko AS
+SELECT d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, 
+       p.id AS pracownik_id, p.nazwa AS pracownik_nazwa,
+       dz.id AS dziecko_id, dz.nazwa AS dziecko_nazwa
+FROM dofinansowanie d
+JOIN pracownik p ON d.pracownik_id = p.id
+JOIN dziecko dz ON d.dziecko_id = dz.id
+WHERE d.odbiorca = '1';
+
+-- Widok łączący pożyczkę z jej żyrantem i pracownikami
+CREATE OR REPLACE VIEW v_pozyczka_zyrant AS
+SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
+       z.pracownik_id AS zyrant_id, p.nazwa AS zyrant_nazwa
+FROM pozyczka po
+JOIN zyrant z ON po.id = z.pozyczka_id
+JOIN pracownik p ON z.pracownik_id = p.id;
+

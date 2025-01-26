@@ -55,6 +55,16 @@ const {
   addDofinansowaniaFromFile,
 } = require("../controllers/dataController");
 
+const {
+  getPracownikDofinansowanie,
+  getPracownikPozyczka,
+  getPracownikZapomoga,
+  getPozyczkaRata,
+  getPracownikDziecko,
+  getDofinansowanieDziecko,
+  getPozyczkaZyrant,
+}  = require("../controllers/dataController");
+
 const router = express.Router();
 
 // Add new records
@@ -96,6 +106,30 @@ router.post("/deletezyrant/:id", deleteZyrant);
 router.post("/deletezapomoga/:id", deleteZapomoga);
 router.post("/deletewydarzenie/:id", deleteWydarzenie);
 router.post("/deletedofinansowanie/:id", deleteDofinansowanie);
+
+// Get data from views
+router.get("/view/:tableName", (req, res) => {
+  const { tableName } = req.params;
+
+  switch (tableName) {
+    case 'v_pracownik_dofinansowanie':
+      return getPracownikDofinansowanie(req, res);
+    case 'v_pracownik_pozyczka':
+      return getPracownikPozyczka(req, res);
+    case 'v_pracownik_zapomoga':
+      return getPracownikZapomoga(req, res);
+    case 'v_pozyczka_rata':
+      return getPozyczkaRata(req, res);
+    case 'v_pracownik_dziecko':
+      return getPracownikDziecko(req, res);
+    case 'v_dofinansowanie_dziecko':
+      return getDofinansowanieDziecko(req, res);
+    case 'v_pozyczka_zyrant':
+      return getPozyczkaZyrant(req, res);
+    default:
+      return res.status(400).json({ error: 'Invalid view name.' });
+  }
+});
 
 router.get("/tables/:tableName", getTableData);
 router.get("/tables", getTables);
