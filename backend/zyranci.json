@@ -1,0 +1,10 @@
+[
+  {
+    "pozyczka_id": 1,
+    "pracownik_id": 2
+  },
+  {
+    "pozyczka_id": 2,
+    "pracownik_id": 1
+  }
+]

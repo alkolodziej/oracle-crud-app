@@ -1,0 +1,16 @@
+[
+  {
+    "nazwa": "Adam Nowak",
+    "numer_konta": "98765432101234567890",
+    "email": "adam.nowak@example.com",
+    "telefon": "987654321",
+    "adres": "Kraków, ul. Floriańska 10"
+  },
+  {
+    "nazwa": "Ewa Wiśniewska",
+    "numer_konta": "45678912345678901234",
+    "email": "ewa.wisniewska@example.com",
+    "telefon": "654321987",
+    "adres": "Gdańsk, ul. Długa 5"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "rodzaj": 0,
+    "wysokosc": 5000,
+    "pracownik_id": 1
+  },
+  {
+    "rodzaj": 1,
+    "wysokosc": 20000,
+    "pracownik_id": 2
+  }
+]

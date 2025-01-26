@@ -14,4 +14,17 @@ async function connectToDatabase() {
   }
 }
 
+exports.getLastId = async (tableName) => {
+  const connection = await connectToDatabase();
+  try {
+    const result = await connection.execute(`SELECT MAX(id) AS last_id FROM SYSTEM.${tableName}`);
+    return result.rows[0]?.LAST_ID || 0;
+  } catch (error) {
+    console.error('Error fetching last ID:', error.message);
+    throw error;
+  } finally {
+    await connection.close();
+  }
+};
+
 module.exports = connectToDatabase;

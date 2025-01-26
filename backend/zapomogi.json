@@ -1,0 +1,12 @@
+[
+  {
+    "cel": 1,
+    "wysokosc": 2000,
+    "pracownik_id": 1
+  },
+  {
+    "cel": 2,
+    "wysokosc": 1500,
+    "pracownik_id": 2
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "wysokosc": 500,
+    "oplacona": 0,
+    "termin_platnosci": "2025-02-01",
+    "pozyczka_id": 1
+  },
+  {
+    "wysokosc": 1000,
+    "oplacona": 1,
+    "termin_platnosci": "2025-01-15",
+    "pozyczka_id": 2
+  }
+]

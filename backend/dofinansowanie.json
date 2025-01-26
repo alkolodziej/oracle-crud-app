@@ -1,0 +1,20 @@
+[
+  {
+    "odbiorca": "0",
+    "prog": 500,
+    "data_wyplacenia": "26/01/2025",
+    "rodzaj": "0",
+    "pracownik_id": 1,
+    "dziecko_id": null,
+    "wydarzenie_id": 2
+  },
+  {
+    "odbiorca": "1",
+    "prog": 700,
+    "data_wyplacenia": "26/01/2025",
+    "rodzaj": "1",
+    "pracownik_id": 2,
+    "dziecko_id": 1,
+    "wydarzenie_id": 3
+  }
+]
