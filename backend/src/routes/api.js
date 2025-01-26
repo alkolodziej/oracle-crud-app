@@ -1,40 +1,96 @@
 const express = require('express');
-const { addPracownik } = require('../controllers/dataController');
-const { addDziecko } = require('../controllers/dataController');
-const { addPozyczka } = require('../controllers/dataController');
-const { addRataPozyczki } = require('../controllers/dataController');
-const { addZyrant} = require('../controllers/dataController');
-const { addZapomoga} = require('../controllers/dataController');
-const { addWydarzenie} = require('../controllers/dataController');
-const { addDofinansowanie} = require('../controllers/dataController');
+const { 
+  addPracownik, 
+  updatePracownik, 
+  deletePracownik 
+} = require('../controllers/dataController');
+const { 
+  addDziecko, 
+  updateDziecko, 
+  deleteDziecko 
+} = require('../controllers/dataController');
+const { 
+  addPozyczka, 
+  updatePozyczka, 
+  deletePozyczka 
+} = require('../controllers/dataController');
+const { 
+  addRataPozyczki, 
+  updateRataPozyczki, 
+  deleteRataPozyczki 
+} = require('../controllers/dataController');
+const { 
+  addZyrant, 
+  updateZyrant, 
+  deleteZyrant 
+} = require('../controllers/dataController');
+const { 
+  addZapomoga, 
+  updateZapomoga, 
+  deleteZapomoga 
+} = require('../controllers/dataController');
+const { 
+  addWydarzenie, 
+  updateWydarzenie, 
+  deleteWydarzenie 
+} = require('../controllers/dataController');
+const { 
+  addDofinansowanie, 
+  updateDofinansowanie, 
+  deleteDofinansowanie 
+} = require('../controllers/dataController');
 
-const { addPracownicyFromFile } = require('../controllers/dataController');
-const { addDzieciFromFile} = require('../controllers/dataController');
-const { addPozyczkiFromFile } = require('../controllers/dataController');
-const { addRatPozyczkiFromFile } = require('../controllers/dataController');
-const { addZyranciFromFile } = require('../controllers/dataController');
-const { addZapomogiFromFile } = require('../controllers/dataController');
-const { addWydarzeniaFromFile } = require('../controllers/dataController');
-const { addDofinansowaniaFromFile } = require('../controllers/dataController');
+const { 
+  addPracownicyFromFile, 
+  addDzieciFromFile, 
+  addPozyczkiFromFile, 
+  addRatPozyczkiFromFile, 
+  addZyranciFromFile, 
+  addZapomogiFromFile, 
+  addWydarzeniaFromFile, 
+  addDofinansowaniaFromFile 
+} = require('../controllers/dataController');
 
 const router = express.Router();
 
-router.post('/pracownik', addPracownik);
-router.post('/dziecko', addDziecko);
-router.post('/pozyczka', addPozyczka);
-router.post('/ratapozyczki', addRataPozyczki);
-router.post('/zyrant', addZyrant);
-router.post('/zapomoga', addZapomoga);
-router.post('/wydarzenie', addWydarzenie);
-router.post('/dofinansowanie', addDofinansowanie);
+// Add new records
+router.post('/addpracownik', addPracownik);
+router.post('/adddziecko', addDziecko);
+router.post('/addpozyczka', addPozyczka);
+router.post('/addratapozyczki', addRataPozyczki);
+router.post('/addzyrant', addZyrant);
+router.post('/addzapomoga', addZapomoga);
+router.post('/addwydarzenie', addWydarzenie);
+router.post('/adddofinansowanie', addDofinansowanie);
 
-router.post('/pracownicy', addPracownicyFromFile);
-router.post('/dzieci', addDzieciFromFile);
-router.post('/pozyczki', addPozyczkiFromFile);
-router.post('/ratypozyczki', addRatPozyczkiFromFile);
-router.post('/zyranci', addZyranciFromFile);
-router.post('/zapomogi', addZapomogiFromFile);
-router.post('/wydarzenia', addWydarzeniaFromFile);
-router.post('/dofinansowania', addDofinansowaniaFromFile);
+// Add multiple records from file
+router.post('/addpracownicy', addPracownicyFromFile);
+router.post('/adddzieci', addDzieciFromFile);
+router.post('/addpozyczki', addPozyczkiFromFile);
+router.post('/addratypozyczki', addRatPozyczkiFromFile);
+router.post('/addzyranci', addZyranciFromFile);
+router.post('/addzapomogi', addZapomogiFromFile);
+router.post('/addwydarzenia', addWydarzeniaFromFile);
+router.post('/adddofinansowania', addDofinansowaniaFromFile);
+
+// Update records
+router.put('/updatepracownik/:id', updatePracownik);  // Added update endpoint
+router.put('/updatedziecko/:id', updateDziecko);     // Added update endpoint
+router.put('/updatepozyczka/:id', updatePozyczka);   // Added update endpoint
+router.put('/updateratapozyczki/:id', updateRataPozyczki);  // Added update endpoint
+router.put('/updatezyrant/:id', updateZyrant);  // Added update endpoint
+router.put('/updatezapomoga/:id', updateZapomoga);  // Added update endpoint
+router.put('/updatewydarzenie/:id', updateWydarzenie);  // Added update endpoint
+router.put('/updatedofinansowanie/:id', updateDofinansowanie);  // Added update endpoint
+
+// Delete records
+router.delete('/deletepracownik/:id', deletePracownik);
+router.delete('/deletedziecko/:id', deleteDziecko);
+router.delete('/deletepozyczka/:id', deletePozyczka);
+router.delete('/deleteratapozyczki/:id', deleteRataPozyczki);
+router.delete('/deletezyrant/:id', deleteZyrant);
+router.delete('/deletezapomoga/:id', deleteZapomoga);
+router.delete('/deletewydarzenie/:id', deleteWydarzenie);
+router.delete('/deletedofinansowanie/:id', deleteDofinansowanie);
 
 module.exports = router;
