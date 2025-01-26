@@ -6,8 +6,8 @@ exports.addPracownik = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.PRACOWNIK (id, nazwa, numer_konta, email, telefon, adres)
-       VALUES (pracownik_seq.NEXTVAL, :nazwa, :numer_konta, :email, :telefon, :adres)`,
+      `INSERT INTO SYSTEM.PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
+       VALUES (:nazwa, :numer_konta, :email, :telefon, :adres)`,
       [nazwa, numer_konta, email, telefon, adres],
       { autoCommit: true }
     );
@@ -27,8 +27,8 @@ exports.addDziecko = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.DZIECKO (id, nazwa, pracownik_id)
-       VALUES (dziecko_seq.NEXTVAL, :nazwa, :pracownik_id)`,
+      `INSERT INTO SYSTEM.DZIECKO (nazwa, pracownik_id)
+       VALUES (:nazwa, :pracownik_id)`,
       [nazwa, pracownik_id],
       { autoCommit: true }
     );
@@ -53,8 +53,8 @@ exports.addPozyczka = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.POZYCZKA (id, rodzaj, wysokosc, pracownik_id)
-       VALUES (pozyczka_seq.NEXTVAL, :rodzaj, :wysokosc, :pracownik_id)`,
+      `INSERT INTO SYSTEM.POZYCZKA (rodzaj, wysokosc, pracownik_id)
+       VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
       [rodzaj, wysokosc, pracownik_id],
       { autoCommit: true }
     );
@@ -78,8 +78,8 @@ exports.addRataPozyczki = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.RATA_POZYCZKI (id, wysokosc, oplacona, termin_platnosci, pozyczka_id)
-       VALUES (rata_pozyczki_seq.NEXTVAL, :wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
+      `INSERT INTO SYSTEM.RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
+       VALUES (:wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
       [wysokosc, oplacona, termin_platnosci, pozyczka_id],
       { autoCommit: true }
     );
@@ -133,8 +133,8 @@ exports.addZapomoga = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.ZAPOMOGA (id, cel, wysokosc, pracownik_id)
-       VALUES (zapomoga_seq.NEXTVAL, :cel, :wysokosc, :pracownik_id)`,
+      `INSERT INTO SYSTEM.ZAPOMOGA (cel, wysokosc, pracownik_id)
+       VALUES (:cel, :wysokosc, :pracownik_id)`,
       [cel, wysokosc, pracownik_id],
       { autoCommit: true }
     );
@@ -154,8 +154,8 @@ exports.addWydarzenie = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.WYDARZENIE (id, nazwa_wydarzenia)
-       VALUES (wydarzenie_seq.NEXTVAL, :nazwa_wydarzenia)`,
+      `INSERT INTO SYSTEM.WYDARZENIE (nazwa_wydarzenia)
+       VALUES (:nazwa_wydarzenia)`,
       [nazwa_wydarzenia],
       { autoCommit: true }
     );
@@ -177,8 +177,8 @@ exports.addDofinansowanie = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.DOFINANSOWANIE (id, odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
-       VALUES (dofinansowanie_seq.NEXTVAL, :odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
+      `INSERT INTO SYSTEM.DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
+       VALUES (:odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
       [odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dzieckoIdParam, wydarzenie_id],
       { autoCommit: true }
     );
@@ -204,8 +204,8 @@ exports.addPracownicyFromFile = async (req, res) => {
       const { nazwa, numer_konta, email, telefon, adres } = pracownik;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.PRACOWNIK (id, nazwa, numer_konta, email, telefon, adres)
-         VALUES (pracownik_seq.NEXTVAL, :nazwa, :numer_konta, :email, :telefon, :adres)`,
+        `INSERT INTO SYSTEM.PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
+         VALUES (:nazwa, :numer_konta, :email, :telefon, :adres)`,
         [nazwa, numer_konta, email, telefon, adres],
         { autoCommit: true }
       );
@@ -230,8 +230,8 @@ exports.addDzieciFromFile = async (req, res) => {
       const { nazwa, pracownik_id } = dziecko;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.DZIECKO (id, nazwa, pracownik_id)
-         VALUES (dziecko_seq.NEXTVAL, :nazwa, :pracownik_id)`,
+        `INSERT INTO SYSTEM.DZIECKO (nazwa, pracownik_id)
+         VALUES (:nazwa, :pracownik_id)`,
         [nazwa, pracownik_id],
         { autoCommit: true }
       );
@@ -261,8 +261,8 @@ exports.addPozyczkiFromFile = async (req, res) => {
       }
 
       await connection.execute(
-        `INSERT INTO SYSTEM.POZYCZKA (id, rodzaj, wysokosc, pracownik_id)
-         VALUES (pozyczka_seq.NEXTVAL, :rodzaj, :wysokosc, :pracownik_id)`,
+        `INSERT INTO SYSTEM.POZYCZKA (rodzaj, wysokosc, pracownik_id)
+         VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
         [rodzaj, wysokosc, pracownik_id],
         { autoCommit: true }
       );
@@ -291,8 +291,8 @@ exports.addRatPozyczkiFromFile = async (req, res) => {
       }
 
       await connection.execute(
-        `INSERT INTO SYSTEM.RATA_POZYCZKI (id, wysokosc, oplacona, termin_platnosci, pozyczka_id)
-         VALUES (rata_pozyczki_seq.NEXTVAL, :wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
+        `INSERT INTO SYSTEM.RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
+         VALUES (:wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
         [wysokosc, oplacona, termin_platnosci, pozyczka_id],
         { autoCommit: true }
       );
@@ -343,8 +343,8 @@ exports.addZapomogiFromFile = async (req, res) => {
       const { cel, wysokosc, pracownik_id } = zapomoga;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.ZAPOMOGA (id, cel, wysokosc, pracownik_id)
-         VALUES (zapomoga_seq.NEXTVAL, :cel, :wysokosc, :pracownik_id)`,
+        `INSERT INTO SYSTEM.ZAPOMOGA (cel, wysokosc, pracownik_id)
+         VALUES (:cel, :wysokosc, :pracownik_id)`,
         [cel, wysokosc, pracownik_id],
         { autoCommit: true }
       );
@@ -369,8 +369,8 @@ exports.addWydarzeniaFromFile = async (req, res) => {
       const { nazwa_wydarzenia } = wydarzenie;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.WYDARZENIE (id, nazwa_wydarzenia)
-         VALUES (wydarzenie_seq.NEXTVAL, :nazwa_wydarzenia)`,
+        `INSERT INTO SYSTEM.WYDARZENIE (nazwa_wydarzenia)
+         VALUES (:nazwa_wydarzenia)`,
         [nazwa_wydarzenia],
         { autoCommit: true }
       );
@@ -397,8 +397,8 @@ exports.addDofinansowaniaFromFile = async (req, res) => {
       const dzieckoIdParam = dziecko_id || null; // Jeśli dziecko_id jest undefined lub null, przekazujemy null
 
       await connection.execute(
-        `INSERT INTO SYSTEM.DOFINANSOWANIE (id, odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
-         VALUES (dofinansowanie_seq.NEXTVAL, :odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
+        `INSERT INTO SYSTEM.DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
+         VALUES (:odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
         [odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dzieckoIdParam, wydarzenie_id],
         { autoCommit: true }
       );
