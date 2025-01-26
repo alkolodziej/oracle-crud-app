@@ -12,6 +12,10 @@ const allowedTables = [
   'zyrant',
 ];
 
+exports.getTables = async (req, res) => {
+  res.json({ tables: allowedTables });
+};
+
 exports.getTableData = async (req, res) => {
   const { tableName } = req.params;
 

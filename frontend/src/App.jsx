@@ -1,17 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import DataList from './components/DataList';
+import TablesPage from './pages/TablesPage';
+import CssBaseline from '@mui/material/CssBaseline';
+import { createTheme, ThemeProvider } from '@mui/material';
 
 const queryClient = new QueryClient();
 
-function App() {
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
+const App = () => {
   return (
+    <ThemeProvider theme={darkTheme}>
+
     <QueryClientProvider client={queryClient}>
-      <div className="App">
-        <h1>Pracownicy</h1>
-        <DataList />
-      </div>
+      <CssBaseline />
+      <TablesPage />
     </QueryClientProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;

@@ -5,6 +5,7 @@ const {
   updatePracownik,
   deletePracownik,
   getTableData,
+  getTables,
 } = require("../controllers/dataController");
 const {
   addDziecko,
@@ -60,7 +61,7 @@ const router = express.Router();
 router.post("/addpracownik", addPracownik);
 router.post("/adddziecko", addDziecko);
 router.post("/addpozyczka", addPozyczka);
-router.post("/addratapozyczki", addRataPozyczki);
+router.post("/addrata_pozyczki", addRataPozyczki);
 router.post("/addzyrant", addZyrant);
 router.post("/addzapomoga", addZapomoga);
 router.post("/addwydarzenie", addWydarzenie);
@@ -70,7 +71,7 @@ router.post("/adddofinansowanie", addDofinansowanie);
 router.post("/addpracownicy", addPracownicyFromFile);
 router.post("/adddzieci", addDzieciFromFile);
 router.post("/addpozyczki", addPozyczkiFromFile);
-router.post("/addratypozyczki", addRatPozyczkiFromFile);
+router.post("/addraty_pozyczki", addRatPozyczkiFromFile);
 router.post("/addzyranci", addZyranciFromFile);
 router.post("/addzapomogi", addZapomogiFromFile);
 router.post("/addwydarzenia", addWydarzeniaFromFile);
@@ -80,7 +81,7 @@ router.post("/adddofinansowania", addDofinansowaniaFromFile);
 router.post("/updatepracownik/:id", updatePracownik); // Added update endpoint
 router.post("/updatedziecko/:id", updateDziecko); // Added update endpoint
 router.post("/updatepozyczka/:id", updatePozyczka); // Added update endpoint
-router.post("/updateratapozyczki/:id", updateRataPozyczki); // Added update endpoint
+router.post("/updaterata_pozyczki/:id", updateRataPozyczki); // Added update endpoint
 router.post("/updatezyrant/:id", updateZyrant); // Added update endpoint
 router.post("/updatezapomoga/:id", updateZapomoga); // Added update endpoint
 router.post("/updatewydarzenie/:id", updateWydarzenie); // Added update endpoint
@@ -90,12 +91,13 @@ router.post("/updatedofinansowanie/:id", updateDofinansowanie); // Added update 
 router.post("/deletepracownik/:id", deletePracownik);
 router.post("/deletedziecko/:id", deleteDziecko);
 router.post("/deletepozyczka/:id", deletePozyczka);
-router.post("/deleteratapozyczki/:id", deleteRataPozyczki);
+router.post("/deleterata_pozyczki/:id", deleteRataPozyczki);
 router.post("/deletezyrant/:id", deleteZyrant);
 router.post("/deletezapomoga/:id", deleteZapomoga);
 router.post("/deletewydarzenie/:id", deleteWydarzenie);
 router.post("/deletedofinansowanie/:id", deleteDofinansowanie);
 
 router.get("/tables/:tableName", getTableData);
+router.get("/tables", getTables);
 
 module.exports = router;
