@@ -16,6 +16,8 @@ exports.getTables = async (req, res) => {
   res.json({ tables: allowedTables });
 };
 
+const oracledb = require('oracledb');
+
 exports.getTableData = async (req, res) => {
   const { tableName } = req.params;
 
@@ -29,7 +31,26 @@ exports.getTableData = async (req, res) => {
     connection = await connectToDatabase();
     const query = `SELECT * FROM ${tableName}`;
     const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
+
+    const rows = result.rows.map((row) => {
+      return row.map((col) => {
+        if (col && col.type === oracledb.CLOB) {
+          // Użycie getData() i toString('utf8') do konwersji CLOB na string
+          return new Promise((resolve, reject) => {
+            col.getData((err, data) => {
+              if (err) return reject(err);
+              resolve(data.toString('utf8')); // Zwracamy dane w formacie tekstowym
+            });
+          });
+        }
+        return col;
+      });
+    });
+
+    // Oczekiwanie na zakończenie obietnic dla CLOB
+    const resolvedRows = await Promise.all(rows.map((row) => Promise.all(row)));
+
+    res.json({ data: resolvedRows, columns: result.metaData });
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Failed to fetch data.' });
@@ -44,13 +65,14 @@ exports.getTableData = async (req, res) => {
   }
 };
 
+
 exports.addPracownik = async (req, res) => {
   const { nazwa, numer_konta, email, telefon, adres } = req.body;
 
   const connection = await connectToDatabase();
   try {
     await connection.execute(
-      `INSERT INTO SYSTEM.PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
+      `INSERT INTO PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
        VALUES (:nazwa, :numer_konta, :email, :telefon, :adres)`,
       [nazwa, numer_konta, email, telefon, adres],
       { autoCommit: true }
@@ -71,7 +93,7 @@ exports.addDziecko = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.DZIECKO (nazwa, pracownik_id)
+      `INSERT INTO DZIECKO (nazwa, pracownik_id)
        VALUES (:nazwa, :pracownik_id)`,
       [nazwa, pracownik_id],
       { autoCommit: true }
@@ -90,14 +112,15 @@ exports.addPozyczka = async (req, res) => {
   const { rodzaj, wysokosc, pracownik_id } = req.body;
 
   // Walidacja pola 'rodzaj'
-  if (rodzaj !== 0 && rodzaj !== 1) {
-    return res.status(400).send('Niepoprawny rodzaj pożyczki. Dozwolone wartości to 0 (konsumpcyjna) lub 1(na zakup mieszkania).');
+  console.log(req.body)
+  if (rodzaj != 0 && rodzaj != 1) {
+    return res.status(400).send('Niepoprawny rodzaj pożyczki. Dozwolone wartości to 0 (konsumpcyjna) lub 1 (na zakup mieszkania).');
   }
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.POZYCZKA (rodzaj, wysokosc, pracownik_id)
+      `INSERT INTO POZYCZKA (rodzaj, wysokosc, pracownik_id)
        VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
       [rodzaj, wysokosc, pracownik_id],
       { autoCommit: true }
@@ -115,14 +138,14 @@ exports.addPozyczka = async (req, res) => {
 exports.addRataPozyczki = async (req, res) => {
   const { wysokosc, oplacona, termin_platnosci, pozyczka_id } = req.body;
 
-  if (oplacona !== 0 && oplacona !== 1) {
+  if (oplacona != 0 && oplacona != 1) {
     return res.status(400).send('Niepoprawny oplacona rata pożyczki. Dozwolone wartości to 0 (nieoplacona) lub 1 (oplacona).');
   }
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
+      `INSERT INTO RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
        VALUES (:wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
       [wysokosc, oplacona, termin_platnosci, pozyczka_id],
       { autoCommit: true }
@@ -145,18 +168,18 @@ exports.addZyrant = async (req, res) => {
   try {
     // Sprawdzanie, czy rekord z pozyczka_id istnieje w tabeli POZYCZKA
     const result = await connection.execute(
-      `SELECT COUNT(*) AS count FROM SYSTEM.POZYCZKA WHERE id = :pozyczka_id`,
+      `SELECT COUNT(*) AS count FROM POZYCZKA WHERE id = :pozyczka_id`,
       [pozyczka_id]
     );
 
     const count = result.rows[0].COUNT;
-    if (count === 0) {
+    if (count = 0) {
       return res.status(400).send('Rekord pozyczki o podanym ID nie istnieje w tabeli POZYCZKA');
     }
 
     // Jeśli rekord pozyczki istnieje, dodaj zyranta
     await connection.execute(
-      `INSERT INTO SYSTEM.ZYRANT (pozyczka_id, pracownik_id)
+      `INSERT INTO ZYRANT (pozyczka_id, pracownik_id)
        VALUES (:pozyczka_id, :pracownik_id)`,
       [pozyczka_id, pracownik_id],
       { autoCommit: true }
@@ -177,7 +200,7 @@ exports.addZapomoga = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.ZAPOMOGA (cel, wysokosc, pracownik_id)
+      `INSERT INTO ZAPOMOGA (cel, wysokosc, pracownik_id)
        VALUES (:cel, :wysokosc, :pracownik_id)`,
       [cel, wysokosc, pracownik_id],
       { autoCommit: true }
@@ -198,7 +221,7 @@ exports.addWydarzenie = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.WYDARZENIE (nazwa_wydarzenia)
+      `INSERT INTO WYDARZENIE (nazwa_wydarzenia)
        VALUES (:nazwa_wydarzenia)`,
       [nazwa_wydarzenia],
       { autoCommit: true }
@@ -221,7 +244,7 @@ exports.addDofinansowanie = async (req, res) => {
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `INSERT INTO SYSTEM.DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
+      `INSERT INTO DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
        VALUES (:odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
       [odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dzieckoIdParam, wydarzenie_id],
       { autoCommit: true }
@@ -247,7 +270,7 @@ exports.addPracownicyFromFile = async (_req, res) => {
       const { nazwa, numer_konta, email, telefon, adres } = pracownik;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
+        `INSERT INTO PRACOWNIK (nazwa, numer_konta, email, telefon, adres)
          VALUES (:nazwa, :numer_konta, :email, :telefon, :adres)`,
         [nazwa, numer_konta, email, telefon, adres],
         { autoCommit: true }
@@ -273,7 +296,7 @@ exports.addDzieciFromFile = async (_req, res) => {
       const { nazwa, pracownik_id } = dziecko;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.DZIECKO (nazwa, pracownik_id)
+        `INSERT INTO DZIECKO (nazwa, pracownik_id)
          VALUES (:nazwa, :pracownik_id)`,
         [nazwa, pracownik_id],
         { autoCommit: true }
@@ -299,12 +322,12 @@ exports.addPozyczkiFromFile = async (_req, res) => {
       const { rodzaj, wysokosc, pracownik_id } = pozyczka;
 
       // Walidacja pola 'rodzaj'
-      if (rodzaj !== 0 && rodzaj !== 1) {
+      if (rodzaj != 0 && rodzaj != 1) {
         return res.status(400).send('Niepoprawny rodzaj pożyczki. Dozwolone wartości to 0 (konsumpcyjna) lub 1(na zakup mieszkania).');
       }
 
       await connection.execute(
-        `INSERT INTO SYSTEM.POZYCZKA (rodzaj, wysokosc, pracownik_id)
+        `INSERT INTO POZYCZKA (rodzaj, wysokosc, pracownik_id)
          VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
         [rodzaj, wysokosc, pracownik_id],
         { autoCommit: true }
@@ -329,13 +352,13 @@ exports.addRatPozyczkiFromFile = async (_req, res) => {
     for (const rata of data) {
       const { wysokosc, oplacona, termin_platnosci, pozyczka_id } = rata;
 
-      if (oplacona !== 0 && oplacona !== 1) {
+      if (oplacona != 0 && oplacona != 1) {
         return res.status(400).send('Niepoprawny oplacona rata pożyczki. Dozwolone wartości to 0 (nieoplacona) lub 1 (oplacona).');
       }
 
       await connection.execute(
-        `INSERT INTO SYSTEM.RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
-         VALUES (:wysokosc, :oplacona, :termin_platnosci, :pozyczka_id)`,
+        `INSERT INTO RATA_POZYCZKI (wysokosc, oplacona, termin_platnosci, pozyczka_id)
+         VALUES (:wysokosc, :oplacona, TO_DATE(:termin_platnosci, 'DD-MM-RR'), :pozyczka_id)`,
         [wysokosc, oplacona, termin_platnosci, pozyczka_id],
         { autoCommit: true }
       );
@@ -360,7 +383,7 @@ exports.addZyranciFromFile = async (_req, res) => {
       const { pozyczka_id, pracownik_id } = zyrant;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.ZYRANT (pozyczka_id, pracownik_id)
+        `INSERT INTO ZYRANT (pozyczka_id, pracownik_id)
          VALUES (:pozyczka_id, :pracownik_id)`,
         [pozyczka_id, pracownik_id],
         { autoCommit: true }
@@ -386,7 +409,7 @@ exports.addZapomogiFromFile = async (_req, res) => {
       const { cel, wysokosc, pracownik_id } = zapomoga;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.ZAPOMOGA (cel, wysokosc, pracownik_id)
+        `INSERT INTO ZAPOMOGA (cel, wysokosc, pracownik_id)
          VALUES (:cel, :wysokosc, :pracownik_id)`,
         [cel, wysokosc, pracownik_id],
         { autoCommit: true }
@@ -412,7 +435,7 @@ exports.addWydarzeniaFromFile = async (_req, res) => {
       const { nazwa_wydarzenia } = wydarzenie;
 
       await connection.execute(
-        `INSERT INTO SYSTEM.WYDARZENIE (nazwa_wydarzenia)
+        `INSERT INTO WYDARZENIE (nazwa_wydarzenia)
          VALUES (:nazwa_wydarzenia)`,
         [nazwa_wydarzenia],
         { autoCommit: true }
@@ -440,7 +463,7 @@ exports.addDofinansowaniaFromFile = async (_req, res) => {
       const dzieckoIdParam = dziecko_id || null; // Jeśli dziecko_id jest undefined lub null, przekazujemy null
 
       await connection.execute(
-        `INSERT INTO SYSTEM.DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
+        `INSERT INTO DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
          VALUES (:odbiorca, :prog, TO_DATE(:data_wyplacenia, 'DD/MM/YYYY'), :rodzaj, :pracownik_id, :dziecko_id, :wydarzenie_id)`,
         [odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dzieckoIdParam, wydarzenie_id],
         { autoCommit: true }
@@ -458,13 +481,13 @@ exports.addDofinansowaniaFromFile = async (_req, res) => {
 
 
 exports.deletePracownik = async (req, res) => {
-  const { pracownik_id } = req.params;
+  const { id } = req.params;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
-      `BEGIN pracownik_pkg.delete_pracownik(:pracownik_id); END;`,
-      [pracownik_id],
+      `BEGIN pracownik_pkg.delete_pracownik(:id); END;`,
+      [id],
       { autoCommit: true }
     );
 
@@ -618,21 +641,22 @@ exports.deleteDofinansowanie = async (req, res) => {
 };
 
 exports.updatePozyczka = async (req, res) => {
-  const { pozyczka_id, rodzaj, wysokosc, pracownik_id } = req.body;
+  const {id} = req.params;
+  const {  rodzaj, wysokosc, pracownik_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         pozyczka_pkg.update_pozyczka(
-          :pozyczka_id,
+          :id,
           :rodzaj,
           :wysokosc,
           :pracownik_id
         );
       END;`,
       {
-        pozyczka_id: pozyczka_id,
+        id: id,
         rodzaj: rodzaj,
         wysokosc: wysokosc,
         pracownik_id: pracownik_id
@@ -650,14 +674,16 @@ exports.updatePozyczka = async (req, res) => {
 };
 
 exports.updatePracownik = async (req, res) => {
-  const { pracownik_id, nazwa, numer_konta, email, telefon, adres } = req.body;
+  const {id} = req.params;
+
+  const { nazwa, numer_konta, email, telefon, adres } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         pracownik_pkg.update_pracownik(
-          :pracownik_id,
+          :id,
           :nazwa,
           :numer_konta,
           :email,
@@ -666,7 +692,7 @@ exports.updatePracownik = async (req, res) => {
         );
       END;`,
       {
-        pracownik_id: pracownik_id,
+        id: id,
         nazwa: nazwa,
         numer_konta: numer_konta,
         email: email,
@@ -686,14 +712,16 @@ exports.updatePracownik = async (req, res) => {
 };
 
 exports.updateRataPozyczki = async (req, res) => {
-  const { rata_pozyczki_id, wysokosc, oplacona, termin_platnosci, pozyczka_id } = req.body;
+  const {id} = req.params;
+
+  const { wysokosc, oplacona, termin_platnosci, pozyczka_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         rata_pozyczki_pkg.update_rata_pozyczki(
-          :rata_pozyczki_id,
+          :id,
           :wysokosc,
           :oplacona,
           :termin_platnosci,
@@ -701,7 +729,7 @@ exports.updateRataPozyczki = async (req, res) => {
         );
       END;`,
       {
-        rata_pozyczki_id: rata_pozyczki_id,
+        id: id,
         wysokosc: wysokosc,
         oplacona: oplacona,
         termin_platnosci: termin_platnosci,
@@ -720,21 +748,22 @@ exports.updateRataPozyczki = async (req, res) => {
 };
 
 exports.updateZapomoga = async (req, res) => {
-  const { zapomoga_id, cel, wysokosc, pracownik_id } = req.body;
+  const {id} = req.params;
+  const { cel, wysokosc, pracownik_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         zapomoga_pkg.update_zapomoga(
-          :zapomoga_id,
+          :id,
           :cel,
           :wysokosc,
           :pracownik_id
         );
       END;`,
       {
-        zapomoga_id: zapomoga_id,
+        id: id,
         cel: cel,
         wysokosc: wysokosc,
         pracownik_id: pracownik_id
@@ -752,19 +781,21 @@ exports.updateZapomoga = async (req, res) => {
 };
 
 exports.updateWydarzenie = async (req, res) => {
-  const { wydarzenie_id, nazwa_wydarzenia } = req.body;
+  const {id} = req.params;
+
+  const { nazwa_wydarzenia } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         wydarzenie_pkg.update_wydarzenie(
-          :wydarzenie_id,
+          :id,
           :nazwa_wydarzenia
         );
       END;`,
       {
-        wydarzenie_id: wydarzenie_id,
+        id: id,
         nazwa_wydarzenia: nazwa_wydarzenia
       },
       { autoCommit: true }
@@ -780,19 +811,21 @@ exports.updateWydarzenie = async (req, res) => {
 };
 
 exports.updateZyrant = async (req, res) => {
-  const { pozyczka_id, pracownik_id } = req.body;
+  const {id} = req.params;
+
+  const { pracownik_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         zyrant_pkg.update_zyrant(
-          :pozyczka_id,
+          :id,
           :pracownik_id
         );
       END;`,
       {
-        pozyczka_id: pozyczka_id,
+        id: id,
         pracownik_id: pracownik_id
       },
       { autoCommit: true }
@@ -808,20 +841,22 @@ exports.updateZyrant = async (req, res) => {
 };
 
 exports.updateDziecko = async (req, res) => {
-  const { dziecko_id, nazwa, pracownik_id } = req.body;
+  const {id} = req.params;
+
+  const { nazwa, pracownik_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         dziecko_pkg.update_dziecko(
-          :dziecko_id,
+          :id,
           :nazwa,
           :pracownik_id
         );
       END;`,
       {
-        dziecko_id: dziecko_id,
+        id: id,
         nazwa: nazwa,
         pracownik_id: pracownik_id
       },
@@ -838,14 +873,16 @@ exports.updateDziecko = async (req, res) => {
 };
 
 exports.updateDofinansowanie = async (req, res) => {
-  const { dofinansowanie_id, odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id } = req.body;
+  const {id} = req.params;
+
+  const { odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id } = req.body;
 
   const connection = await connectToDatabase();
   try {
     const result = await connection.execute(
       `BEGIN
         dofinansowanie_pkg.update_dofinansowanie(
-          :dofinansowanie_id,
+          :id,
           :odbiorca,
           :prog,
           :data_wyplacenia,
@@ -856,7 +893,7 @@ exports.updateDofinansowanie = async (req, res) => {
         );
       END;`,
       {
-        dofinansowanie_id: dofinansowanie_id,
+        id: id,
         odbiorca: odbiorca,
         prog: prog,
         data_wyplacenia: data_wyplacenia,
@@ -882,7 +919,7 @@ exports.getPracownikDofinansowanie = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_pracownik_dofinansowanie') {
+  if (tableName != 'v_pracownik_dofinansowanie') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -910,7 +947,7 @@ exports.getPracownikPozyczka = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_pracownik_pozyczka') {
+  if (tableName != 'v_pracownik_pozyczka') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -938,7 +975,7 @@ exports.getPracownikZapomoga = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_pracownik_zapomoga') {
+  if (tableName != 'v_pracownik_zapomoga') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -966,7 +1003,7 @@ exports.getPozyczkaRata = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_pozyczka_rata') {
+  if (tableName != 'v_pozyczka_rata') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -994,7 +1031,7 @@ exports.getPracownikDziecko = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_pracownik_dziecko') {
+  if (tableName != 'v_pracownik_dziecko') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -1022,7 +1059,7 @@ exports.getDofinansowanieDziecko = async (req, res) => {
   const { tableName } = req.params;
 
   // Sprawdzenie poprawności nazwy widoku
-  if (tableName !== 'v_dofinansowanie_dziecko') {
+  if (tableName != 'v_dofinansowanie_dziecko') {
     return res.status(400).json({ error: 'Invalid view name.' });
   }
 
@@ -1046,56 +1083,56 @@ exports.getDofinansowanieDziecko = async (req, res) => {
   }
 };
 
--- Widok łączący pracowników z ich dofinansowaniami
-CREATE OR REPLACE VIEW v_pracownik_dofinansowanie AS
-SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-       d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, d.dziecko_id, d.wydarzenie_id
-FROM pracownik p
-JOIN dofinansowanie d ON p.id = d.pracownik_id;
+// -- Widok łączący pracowników z ich dofinansowaniami
+// CREATE OR REPLACE VIEW v_pracownik_dofinansowanie AS
+// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+//        d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, d.dziecko_id, d.wydarzenie_id
+// FROM pracownik p
+// JOIN dofinansowanie d ON p.id = d.pracownik_id;
 
--- Widok łączący pracowników z pożyczkami
-CREATE OR REPLACE VIEW v_pracownik_pozyczka AS
-SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-       po.id AS pozyczka_id, po.rodzaj, po.wysokosc
-FROM pracownik p
-JOIN pozyczka po ON p.id = po.pracownik_id;
+// -- Widok łączący pracowników z pożyczkami
+// CREATE OR REPLACE VIEW v_pracownik_pozyczka AS
+// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+//        po.id AS pozyczka_id, po.rodzaj, po.wysokosc
+// FROM pracownik p
+// JOIN pozyczka po ON p.id = po.pracownik_id;
 
--- Widok łączący pracowników z ich zapomogami
-CREATE OR REPLACE VIEW v_pracownik_zapomoga AS
-SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-       z.id AS zapomoga_id, z.cel, z.wysokosc
-FROM pracownik p
-JOIN zapomoga z ON p.id = z.pracownik_id;
+// -- Widok łączący pracowników z ich zapomogami
+// CREATE OR REPLACE VIEW v_pracownik_zapomoga AS
+// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+//        z.id AS zapomoga_id, z.cel, z.wysokosc
+// FROM pracownik p
+// JOIN zapomoga z ON p.id = z.pracownik_id;
 
--- Widok łączący pożyczki z ratami pożyczek
-CREATE OR REPLACE VIEW v_pozyczka_rata AS
-SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
-       r.id AS rata_id, r.wysokosc AS rata_wysokosc, r.oplacona, r.termin_platnosci
-FROM pozyczka po
-JOIN rata_pozyczki r ON po.id = r.pozyczka_id;
+// -- Widok łączący pożyczki z ratami pożyczek
+// CREATE OR REPLACE VIEW v_pozyczka_rata AS
+// SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
+//        r.id AS rata_id, r.wysokosc AS rata_wysokosc, r.oplacona, r.termin_platnosci
+// FROM pozyczka po
+// JOIN rata_pozyczki r ON po.id = r.pozyczka_id;
 
--- Widok łączący pracowników z ich dziećmi
-CREATE OR REPLACE VIEW v_pracownik_dziecko AS
-SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-       d.id AS dziecko_id, d.nazwa AS dziecko_nazwa
-FROM pracownik p
-JOIN dziecko d ON p.id = d.pracownik_id;
+// -- Widok łączący pracowników z ich dziećmi
+// CREATE OR REPLACE VIEW v_pracownik_dziecko AS
+// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
+//        d.id AS dziecko_id, d.nazwa AS dziecko_nazwa
+// FROM pracownik p
+// JOIN dziecko d ON p.id = d.pracownik_id;
 
--- Widok łączący dofinansowanie z dzieckiem (gdzie odbiorca = dziecko)
-CREATE OR REPLACE VIEW v_dofinansowanie_dziecko AS
-SELECT d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, 
-       p.id AS pracownik_id, p.nazwa AS pracownik_nazwa,
-       dz.id AS dziecko_id, dz.nazwa AS dziecko_nazwa
-FROM dofinansowanie d
-JOIN pracownik p ON d.pracownik_id = p.id
-JOIN dziecko dz ON d.dziecko_id = dz.id
-WHERE d.odbiorca = '1';
+// -- Widok łączący dofinansowanie z dzieckiem (gdzie odbiorca = dziecko)
+// CREATE OR REPLACE VIEW v_dofinansowanie_dziecko AS
+// SELECT d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, 
+//        p.id AS pracownik_id, p.nazwa AS pracownik_nazwa,
+//        dz.id AS dziecko_id, dz.nazwa AS dziecko_nazwa
+// FROM dofinansowanie d
+// JOIN pracownik p ON d.pracownik_id = p.id
+// JOIN dziecko dz ON d.dziecko_id = dz.id
+// WHERE d.odbiorca = '1';
 
--- Widok łączący pożyczkę z jej żyrantem i pracownikami
-CREATE OR REPLACE VIEW v_pozyczka_zyrant AS
-SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
-       z.pracownik_id AS zyrant_id, p.nazwa AS zyrant_nazwa
-FROM pozyczka po
-JOIN zyrant z ON po.id = z.pozyczka_id
-JOIN pracownik p ON z.pracownik_id = p.id;
+// -- Widok łączący pożyczkę z jej żyrantem i pracownikami
+// CREATE OR REPLACE VIEW v_pozyczka_zyrant AS
+// SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
+//        z.pracownik_id AS zyrant_id, p.nazwa AS zyrant_nazwa
+// FROM pozyczka po
+// JOIN zyrant z ON po.id = z.pozyczka_id
+// JOIN pracownik p ON z.pracownik_id = p.id;
 

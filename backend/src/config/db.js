@@ -7,6 +7,8 @@ async function connectToDatabase() {
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       connectString: process.env.DB_CONNECTION_STRING,
+      outFormat: oracledb.OUT_FORMAT_OBJECT // Automatyczne mapowanie CLOB na string
+
     });
   } catch (error) {
     console.error('Database connection failed:', error);

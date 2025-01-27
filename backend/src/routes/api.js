@@ -81,11 +81,11 @@ router.post("/adddofinansowanie", addDofinansowanie);
 router.post("/addpracownicy", addPracownicyFromFile);
 router.post("/adddzieci", addDzieciFromFile);
 router.post("/addpozyczki", addPozyczkiFromFile);
-router.post("/addraty_pozyczki", addRatPozyczkiFromFile);
+router.post("/addraty_pozyczki" , addRatPozyczkiFromFile); // 
 router.post("/addzyranci", addZyranciFromFile);
 router.post("/addzapomogi", addZapomogiFromFile);
 router.post("/addwydarzenia", addWydarzeniaFromFile);
-router.post("/adddofinansowania", addDofinansowaniaFromFile);
+router.post("/adddofinansowania", addDofinansowaniaFromFile); //
 
 // Update records
 router.post("/updatepracownik/:id", updatePracownik); // Added update endpoint

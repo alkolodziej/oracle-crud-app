@@ -10,86 +10,148 @@ import {
   TableRow,
   IconButton,
   Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Select,
   MenuItem,
   CircularProgress,
   FormControl,
   InputLabel,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { Delete, Edit, Add } from "@mui/icons-material";
 import { useConfirm } from "material-ui-confirm";
 import { useFetchTables } from "../hooks/useFetchTables";
 import { useFetchTableData } from "../hooks/useFetchTableData";
 import apiClient from "../api/apiClient";
+import DataDialog from "../components/DataDialog";
 
 const TablesPage = () => {
   const [tableName, setTableName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [newRow, setNewRow] = useState({});
+  const [currentRow, setCurrentRow] = useState({});
 
-  const [addDialogOpen, setAddDialogOpen] = useState(false); // Stan dla otwierania dialogu
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState("add"); // "add" or "edit"
   const confirm = useConfirm();
 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info", // Możliwe wartości: "success", "error", "info", "warning"
+  });
+
+  const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
+
+  const showSnackbar = (message, severity = "info") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const { data: tables, isLoading: isLoadingTables } = useFetchTables();
-  const { data, isLoading, error } = useFetchTableData(tableName);
+  const { data, isLoading, error, refetch } = useFetchTableData(tableName);
 
   const handleViewTable = (selectedTable) => {
     setTableName(selectedTable);
-    setNewRow({});
+    setSearchTerm("");
+    setCurrentRow({});
+    showSnackbar(`Trwa ładowanie tabeli: ${selectedTable}`, "info");
   };
 
   const handleDelete = (id) => {
+    console.log(id);
     confirm({
       description: `Czy na pewno chcesz usunąć pole o ID ${id}?`,
     })
       .then(() => {
-        console.log(`Usunięto pole o ID ${id}`);
-        // Logika usuwania
+        apiClient
+          .post(`/delete${tableName.toLowerCase()}/${id}`) // Wywołanie endpointu usuwania
+          .then((response) => {
+            console.log(`Usunięto pole o ID ${id}`);
+            showSnackbar(`Usunięto pole o ID ${id}`, "success");
+            refetch(); // Odświeżenie danych po usunięciu
+          })
+          .catch((error) => {
+            console.error("Błąd podczas usuwania:", error);
+            showSnackbar("Usuwanie się nie powiodło", "error");
+          });
       })
-      .catch(() => console.log("Usuwanie zostało przerwane"));
+      .catch(() => {
+        console.log("Usuwanie się nie powiodło");
+        showSnackbar("Usuwanie się nie powiodło", "error");
+      });
   };
 
   const handleEdit = (row) => {
     console.log("Edycja:", row);
-    setEditDialogOpen(true);
+    handleEditDialogOpen(row);
   };
 
   const handleAddDialogOpen = () => {
-    setAddDialogOpen(true); // Otwarcie dialogu dodawania
+    setDialogMode("add");
+    setCurrentRow({});
+    setDialogOpen(true);
   };
 
-  const handleAddDialogClose = () => {
-    setAddDialogOpen(false); // Zamknięcie dialogu
+  const handleEditDialogOpen = (row) => {
+    setDialogMode("edit");
+    setCurrentRow(row);
+    setDialogOpen(true);
   };
 
-  const handleAdd = () => {
-    if (Object.keys(newRow).length === 0) {
-      console.log("Brak danych do dodania");
-      return;
+  const handleSave = (formData) => {
+    if (!formData || Object.keys(formData).length === 0) {
+      console.log("Brak danych do zapisania");
+      showSnackbar("Brak danych do zapisania", "warning");
+      return false;
     }
+
     if (!tableName) {
       console.log("Nie wybrano tabeli");
-      return;
+      showSnackbar("Nie wybrano tabeli", "error");
+      return false;
     }
-    apiClient
-      .post(`/add${tableName.toLowerCase()}`, newRow)
+
+    const apiEndpoint =
+      dialogMode === "edit"
+        ? `/update${tableName.toLowerCase()}/${formData.id}`
+        : `/add${tableName.toLowerCase()}`;
+
+    const apiRequest = apiClient.post(apiEndpoint, formData);
+
+    apiRequest
       .then((res) => {
-        console.log("Dodano nowy rekord:", res.data);
-        setNewRow({});
+        const action = dialogMode === "edit" ? "zaktualizowano" : "dodano";
+        console.log(
+          `${action.charAt(0).toUpperCase() + action.slice(1)} rekord:`,
+          res.data
+        );
+        // setDialogOpen(false);
+        showSnackbar(`Pomyślnie ${action} rekord!`, "success");
+        refetch();
+        return true;
       })
       .catch((err) => {
-        console.error("Błąd podczas dodawania nowego rekordu:", err);
+        console.error(
+          `Błąd podczas ${
+            dialogMode === "edit" ? "aktualizacji" : "dodawania"
+          } rekordu:`,
+          err
+        );
+        showSnackbar(
+          `Błąd podczas ${
+            dialogMode === "edit" ? "aktualizacji" : "dodawania"
+          } rekordu`,
+          "error"
+        );
+        return false;
       });
+  };
 
-    };
-    const handleInputChange = (e, column) => {
-      setNewRow((prev) => ({ ...prev, [column.name]: e.target.value }));
-    };
+  const handleInputChange = (e, column) => {
+    setCurrentRow((prev) => ({
+      ...prev,
+      [column.name?.toLowerCase()]: e.target.value,
+    }));
+  };
 
   return (
     <Box sx={{ padding: 4, maxWidth: "1200px", margin: "0 auto" }}>
@@ -150,11 +212,13 @@ const TablesPage = () => {
         <Table>
           <TableHead>
             <TableRow>
-              {/* Zabezpieczenie przed brakiem columns */}
-              {data?.columns && data.columns.length > 0 ? (
-                data.columns.map((col) => (
-                  <TableCell key={col.name}>{col.name}</TableCell>
-                ))
+              {data && data.columns && data.columns.length > 0 ? (
+                <>
+                  {data.columns.map((col) => (
+                    <TableCell key={col.name}>{col.name}</TableCell>
+                  ))}
+                  <TableCell>Akcje</TableCell>
+                </>
               ) : (
                 <TableCell>Brak kolumn</TableCell>
               )}
@@ -165,7 +229,7 @@ const TablesPage = () => {
               data.rows.map((row, index) => (
                 <TableRow key={index}>
                   {/* Zabezpieczenie dla mapowania kolumn */}
-                  {data.columns.map((col) => (
+                  {[...data.columns, { name: "Action" }].map((col, i) => (
                     <TableCell key={col.name}>
                       {col.name === "Action" ? (
                         <>
@@ -201,50 +265,25 @@ const TablesPage = () => {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-        <DialogTitle>Edytuj dane</DialogTitle>
-        <DialogContent>
-          <Typography>Form to edit data (to be implemented).</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Anuluj</Button>
-          <Button variant="contained" color="primary">
-            Zapisz
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Dialog do dodawania danych */}
-      <Dialog open={addDialogOpen} onClose={handleAddDialogClose}>
-        <DialogTitle>Dodaj dane do tabeli</DialogTitle>
-        <DialogContent>
-          {data?.columns && (
-            <Box sx={{ display: "flex", flexDirection: "column", my:1 }}>
-              {data.columns.map((column) => (
-                <TextField
-                  key={column.name}
-                  label={column.name}
-                  variant="outlined"
-                  value={newRow[column.name] || ""}
-                  onChange={(e) => handleInputChange(e, column)}
-                  sx={{ marginBottom: 2 }}
-                  disabled={column.name?.toLowerCase() === "id"} // Wyłączenie pola ID
-                />
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleAddDialogClose}>Anuluj</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleAdd}
-            disabled={!tableName || Object.keys(newRow).length === 0}
-          >
-            Zapisz
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DataDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleSave}
+        columns={data?.columns || []}
+        initialData={dialogMode === "edit" ? currentRow : {}}
+        dialogTitle={dialogMode === "edit" ? "Edytuj dane" : "Dodaj dane"}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
