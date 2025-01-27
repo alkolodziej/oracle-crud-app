@@ -20,25 +20,46 @@ import {
 } from "@mui/material";
 import { Delete, Edit, Add } from "@mui/icons-material";
 import { useConfirm } from "material-ui-confirm";
-import { useFetchTables } from "../hooks/useFetchTables";
-import { useFetchTableData } from "../hooks/useFetchTableData";
 import apiClient from "../api/apiClient";
 import DataDialog from "../components/DataDialog";
+import { useFetchTables } from "../hooks/useFetchTables";
+import { useFetchTableData } from "../hooks/useFetchTableData";
 
 const TablesPage = () => {
   const [tableName, setTableName] = useState("");
+  const [file, setFile] = useState(null); // Przechowuje wybrany plik
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentRow, setCurrentRow] = useState({});
-
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("add"); // "add" or "edit"
+  const [dialogMode, setDialogMode] = useState("add");
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const confirm = useConfirm();
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info", // Możliwe wartości: "success", "error", "info", "warning"
-  });
+  const { data: tables, isLoading: isLoadingTables } = useFetchTables();
+  const { data, isLoading, error, refetch } = useFetchTableData(tableName);
+
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]); // Przechowuje wybrany plik
+  };
+
+  const handleUpload = () => {
+    if (!file) {
+      showSnackbar("Nie wybrano pliku!", "warning");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    apiClient
+      .post(`/add${tableName.toLowerCase()}fromfile`, formData)
+      .then(() => {
+        showSnackbar("Plik został pomyślnie przesłany!", "success");
+        setFile(null); // Resetowanie pliku po udanym przesłaniu
+        refetch();
+      })
+      .catch(() => {
+        showSnackbar("Błąd podczas przesyłania pliku.", "error");
+      });
+  };
 
   const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
 
@@ -46,115 +67,15 @@ const TablesPage = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const { data: tables, isLoading: isLoadingTables } = useFetchTables();
-  const { data, isLoading, error, refetch } = useFetchTableData(tableName);
-
-  const handleViewTable = (selectedTable) => {
-    setTableName(selectedTable);
-    setSearchTerm("");
-    setCurrentRow({});
-    showSnackbar(`Trwa ładowanie tabeli: ${selectedTable}`, "info");
-  };
-
-  const handleDelete = (id) => {
-    console.log(id);
-    confirm({
-      description: `Czy na pewno chcesz usunąć pole o ID ${id}?`,
-    })
-      .then(() => {
-        apiClient
-          .post(`/delete${tableName.toLowerCase()}/${id}`) // Wywołanie endpointu usuwania
-          .then((response) => {
-            console.log(`Usunięto pole o ID ${id}`);
-            showSnackbar(`Usunięto pole o ID ${id}`, "success");
-            refetch(); // Odświeżenie danych po usunięciu
-          })
-          .catch((error) => {
-            console.error("Błąd podczas usuwania:", error);
-            showSnackbar("Usuwanie się nie powiodło", "error");
-          });
-      })
-      .catch(() => {
-        console.log("Usuwanie się nie powiodło");
-        showSnackbar("Usuwanie się nie powiodło", "error");
-      });
-  };
-
-  const handleEdit = (row) => {
-    console.log("Edycja:", row);
-    handleEditDialogOpen(row);
-  };
-
-  const handleAddDialogOpen = () => {
-    setDialogMode("add");
-    setCurrentRow({});
-    setDialogOpen(true);
-  };
-
-  const handleEditDialogOpen = (row) => {
-    setDialogMode("edit");
-    setCurrentRow(row);
-    setDialogOpen(true);
-  };
-
-  const handleSave = (formData) => {
-    if (!formData || Object.keys(formData).length === 0) {
-      console.log("Brak danych do zapisania");
-      showSnackbar("Brak danych do zapisania", "warning");
-      return false;
-    }
-
-    if (!tableName) {
-      console.log("Nie wybrano tabeli");
-      showSnackbar("Nie wybrano tabeli", "error");
-      return false;
-    }
-
-    const apiEndpoint =
-      dialogMode === "edit"
-        ? `/update${tableName.toLowerCase()}/${formData.id}`
-        : `/add${tableName.toLowerCase()}`;
-
-    const apiRequest = apiClient.post(apiEndpoint, formData);
-
-    apiRequest
-      .then((res) => {
-        const action = dialogMode === "edit" ? "zaktualizowano" : "dodano";
-        console.log(
-          `${action.charAt(0).toUpperCase() + action.slice(1)} rekord:`,
-          res.data
-        );
-        // setDialogOpen(false);
-        showSnackbar(`Pomyślnie ${action} rekord!`, "success");
-        refetch();
-        return true;
-      })
-      .catch((err) => {
-        console.error(
-          `Błąd podczas ${
-            dialogMode === "edit" ? "aktualizacji" : "dodawania"
-          } rekordu:`,
-          err
-        );
-        showSnackbar(
-          `Błąd podczas ${
-            dialogMode === "edit" ? "aktualizacji" : "dodawania"
-          } rekordu`,
-          "error"
-        );
-        return false;
-      });
-  };
-
-  const handleInputChange = (e, column) => {
-    setCurrentRow((prev) => ({
-      ...prev,
-      [column.name?.toLowerCase()]: e.target.value,
-    }));
-  };
+  const filteredRows = data?.rows?.filter((row) => {
+    if (!searchTerm) return true; // Jeśli brak terminu wyszukiwania, zwróć wszystkie wiersze
+    return Object.values(row).some((value) =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
-    <Box sx={{ padding: 4, maxWidth: "1200px", margin: "0 auto" }}>
+        <Box sx={{ padding: 4, maxWidth: "1500px", margin: "0 auto" }}>
       <Box
         sx={{
           display: "flex",
@@ -168,7 +89,7 @@ const TablesPage = () => {
           <Select
             labelId="table-name-label"
             value={tableName}
-            onChange={(e) => handleViewTable(e.target.value)}
+            onChange={(e) => setTableName(e.target.value)}
             label="Wybierz tabelę"
           >
             {isLoadingTables ? (
@@ -190,13 +111,76 @@ const TablesPage = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ marginLeft: 2, flex: 1 }}
         />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, padding: 2}}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <input
+              accept=".json"
+              type="file"
+              onChange={handleFileChange}
+              id="file-upload"
+              style={{
+                display: "none",
+              }}
+              disabled={!tableName || tableName.startsWith("v_")}
+            />
+
+            <label
+              htmlFor="file-upload"
+              style={{
+                cursor: tableName && !tableName.startsWith("v_") ? "pointer" : "not-allowed",
+                color: tableName && !tableName.startsWith("v_") ? "#000000" : "#a0a0a0",
+                backgroundColor: tableName && !tableName.startsWith("v_")
+                  ? "#ACCFFF"
+                  : "#4c6cb1",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                fontSize: "14px",
+                fontWeight: "500",
+                textTransform: "none",
+                display: "inline-block",
+                textAlign: "center",
+                transition: "background-color 0.3s, transform 0.3s",
+                "&:hover": {
+                  backgroundColor: tableName && !tableName.startsWith("v_")
+                    ? "#0056b3"
+                    : "#4c6cb1",
+                  transform: tableName && !tableName.startsWith("v_") ? "scale(1.05)" : "none",
+                },
+              }}
+            >
+              {file ? file.name : "Wybierz plik"}
+            </label>
+          </Box>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleUpload}
+            disabled={!file || !tableName || tableName.startsWith("v_")}
+            sx={{
+              height: 56
+            }}
+          >
+            Dodaj z pliku
+          </Button>
+        </Box>
+
         <Button
           variant="contained"
           color="primary"
           startIcon={<Add />}
-          onClick={handleAddDialogOpen}
-          sx={{ marginLeft: 2, height: 56 }}
-          disabled={!tableName} // Wyłączenie przycisku, jeśli nie wybrano tabeli
+          onClick={() => setDialogOpen(true)}
+          sx={{ height: 56 }}
+          disabled={!tableName || tableName.startsWith("v_")}
         >
           Dodaj do tabeli
         </Button>
@@ -217,7 +201,7 @@ const TablesPage = () => {
                   {data.columns.map((col) => (
                     <TableCell key={col.name}>{col.name}</TableCell>
                   ))}
-                  <TableCell>Akcje</TableCell>
+                  {!tableName.startsWith("v_") && <TableCell>Akcje</TableCell>}
                 </>
               ) : (
                 <TableCell>Brak kolumn</TableCell>
@@ -225,26 +209,31 @@ const TablesPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data?.rows && data.rows.length > 0 ? (
-              data.rows.map((row, index) => (
+            {filteredRows && filteredRows.length > 0 ? (
+              filteredRows.map((row, index) => (
                 <TableRow key={index}>
-                  {/* Zabezpieczenie dla mapowania kolumn */}
-                  {[...data.columns, { name: "Action" }].map((col, i) => (
+                  {[...data.columns, { name: "Action" }].map((col) => (
                     <TableCell key={col.name}>
                       {col.name === "Action" ? (
                         <>
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleEdit(row)}
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDelete(row.id)}
-                          >
-                            <Delete />
-                          </IconButton>
+                          {col.name === "Action" && !tableName.startsWith("v_") ? (
+                            <>
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleEdit(row)}
+                              >
+                                <Edit />
+                              </IconButton>
+                              <IconButton
+                                color="error"
+                                onClick={() => handleDelete(row.id)}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </>
+                          ) : (
+                            row[col.name.toLowerCase()] || "-"
+                          )}
                         </>
                       ) : (
                         row[col.name.toLowerCase()] || "-"
@@ -256,23 +245,15 @@ const TablesPage = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={data?.columns?.length || 1} align="center">
-                  Brak dostępnych danych.
+                  {searchTerm
+                    ? `Brak wyników dla frazy: "${searchTerm}"`
+                    : "Brak dostępnych danych."}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       )}
-
-      {/* Edit Dialog */}
-      <DataDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSave={handleSave}
-        columns={data?.columns || []}
-        initialData={dialogMode === "edit" ? currentRow : {}}
-        dialogTitle={dialogMode === "edit" ? "Edytuj dane" : "Dodaj dane"}
-      />
 
       <Snackbar
         open={snackbar.open}

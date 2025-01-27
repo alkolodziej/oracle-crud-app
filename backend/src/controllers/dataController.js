@@ -1,5 +1,7 @@
 const fs = require('fs');
 const connectToDatabase = require('../config/db');
+const multer = require('multer');
+const path = require('path');
 
 const allowedTables = [
   'pracownik',
@@ -10,6 +12,13 @@ const allowedTables = [
   'wydarzenie',
   'dziecko',
   'zyrant',
+  'v_pracownik_dofinansowanie',
+  'v_pracownik_pozyczka',
+  'v_pracownik_zapomoga',
+  'v_pozyczka_rata',
+  'v_pracownik_dziecko',
+  'v_dofinansowanie_dziecko',
+  'v_pozyczka_zyrant'
 ];
 
 exports.getTables = async (req, res) => {
@@ -258,13 +267,20 @@ exports.addDofinansowanie = async (req, res) => {
   }
 };
 
+// Konfiguracja Multer
+const upload = multer({ dest: 'uploads/' }); // Folder, w którym Multer zapisuje pliki tymczasowo
 
-
-exports.addPracownicyFromFile = async (_req, res) => {
+exports.addPracownicyFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path; // Ścieżka do przesłanego pliku
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/pracownicy.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    // Wczytanie i parsowanie pliku JSON
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const pracownik of data) {
       const { nazwa, numer_konta, email, telefon, adres } = pracownik;
@@ -282,22 +298,31 @@ exports.addPracownicyFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    // Usunięcie pliku tymczasowego
+    if (filePath) {
+      fs.unlinkSync(filePath);
+    }
     await connection.close();
   }
 };
 
-exports.addDzieciFromFile = async (_req, res) => {
+// Dodawanie dzieci z pliku
+exports.addDzieciFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path; // Ścieżka do przesłanego pliku
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/dzieci.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const dziecko of data) {
       const { nazwa, pracownik_id } = dziecko;
 
       await connection.execute(
-        `INSERT INTO DZIECKO (nazwa, pracownik_id)
-         VALUES (:nazwa, :pracownik_id)`,
+        `INSERT INTO DZIECKO (nazwa, pracownik_id) VALUES (:nazwa, :pracownik_id)`,
         [nazwa, pracownik_id],
         { autoCommit: true }
       );
@@ -308,27 +333,32 @@ exports.addDzieciFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addPozyczkiFromFile = async (_req, res) => {
+// Dodawanie pożyczek z pliku
+exports.addPozyczkiFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/pozyczki.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const pozyczka of data) {
       const { rodzaj, wysokosc, pracownik_id } = pozyczka;
 
-      // Walidacja pola 'rodzaj'
-      if (rodzaj != 0 && rodzaj != 1) {
-        return res.status(400).send('Niepoprawny rodzaj pożyczki. Dozwolone wartości to 0 (konsumpcyjna) lub 1(na zakup mieszkania).');
+      if (rodzaj !== 0 && rodzaj !== 1) {
+        return res.status(400).send('Niepoprawny rodzaj pożyczki.');
       }
 
       await connection.execute(
-        `INSERT INTO POZYCZKA (rodzaj, wysokosc, pracownik_id)
-         VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
+        `INSERT INTO POZYCZKA (rodzaj, wysokosc, pracownik_id) VALUES (:rodzaj, :wysokosc, :pracownik_id)`,
         [rodzaj, wysokosc, pracownik_id],
         { autoCommit: true }
       );
@@ -339,21 +369,28 @@ exports.addPozyczkiFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addRatPozyczkiFromFile = async (_req, res) => {
+// Dodawanie rat pożyczek z pliku
+exports.addRatPozyczkiFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/rata_pozyczki.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const rata of data) {
       const { wysokosc, oplacona, termin_platnosci, pozyczka_id } = rata;
 
-      if (oplacona != 0 && oplacona != 1) {
-        return res.status(400).send('Niepoprawny oplacona rata pożyczki. Dozwolone wartości to 0 (nieoplacona) lub 1 (oplacona).');
+      if (oplacona !== 0 && oplacona !== 1) {
+        return res.status(400).send('Niepoprawny status raty pożyczki.');
       }
 
       await connection.execute(
@@ -369,48 +406,60 @@ exports.addRatPozyczkiFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addZyranciFromFile = async (_req, res) => {
+// Dodawanie żyrantów z pliku
+exports.addZyranciFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/zyranci.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const zyrant of data) {
       const { pozyczka_id, pracownik_id } = zyrant;
 
       await connection.execute(
-        `INSERT INTO ZYRANT (pozyczka_id, pracownik_id)
-         VALUES (:pozyczka_id, :pracownik_id)`,
+        `INSERT INTO ZYRANT (pozyczka_id, pracownik_id) VALUES (:pozyczka_id, :pracownik_id)`,
         [pozyczka_id, pracownik_id],
         { autoCommit: true }
       );
     }
 
-    res.status(201).send('Dane z pliku JSON zyrantów zostały dodane do bazy');
+    res.status(201).send('Dane z pliku JSON żyrantów zostały dodane do bazy');
   } catch (error) {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addZapomogiFromFile = async (_req, res) => {
+// Dodawanie zapomóg z pliku
+exports.addZapomogiFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/zapomogi.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const zapomoga of data) {
       const { cel, wysokosc, pracownik_id } = zapomoga;
 
       await connection.execute(
-        `INSERT INTO ZAPOMOGA (cel, wysokosc, pracownik_id)
-         VALUES (:cel, :wysokosc, :pracownik_id)`,
+        `INSERT INTO ZAPOMOGA (cel, wysokosc, pracownik_id) VALUES (:cel, :wysokosc, :pracownik_id)`,
         [cel, wysokosc, pracownik_id],
         { autoCommit: true }
       );
@@ -421,22 +470,28 @@ exports.addZapomogiFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addWydarzeniaFromFile = async (_req, res) => {
+// Dodawanie wydarzeń z pliku
+exports.addWydarzeniaFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/wydarzenia.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const wydarzenie of data) {
       const { nazwa_wydarzenia } = wydarzenie;
 
       await connection.execute(
-        `INSERT INTO WYDARZENIE (nazwa_wydarzenia)
-         VALUES (:nazwa_wydarzenia)`,
+        `INSERT INTO WYDARZENIE (nazwa_wydarzenia) VALUES (:nazwa_wydarzenia)`,
         [nazwa_wydarzenia],
         { autoCommit: true }
       );
@@ -447,20 +502,27 @@ exports.addWydarzeniaFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
 
-exports.addDofinansowaniaFromFile = async (_req, res) => {
+// Dodawanie dofinansowań z pliku
+exports.addDofinansowaniaFromFile = async (req, res) => {
   const connection = await connectToDatabase();
+  const filePath = req.file?.path;
+
   try {
-    // Załadowanie pliku JSON
-    const data = JSON.parse(fs.readFileSync('./assets/dofinansowanie.json', 'utf8'));
+    if (!filePath) {
+      return res.status(400).send('Nie przesłano pliku.');
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
     for (const dofinansowanie of data) {
       const { odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id } = dofinansowanie;
 
-      const dzieckoIdParam = dziecko_id || null; // Jeśli dziecko_id jest undefined lub null, przekazujemy null
+      const dzieckoIdParam = dziecko_id || null;
 
       await connection.execute(
         `INSERT INTO DOFINANSOWANIE (odbiorca, prog, data_wyplacenia, rodzaj, pracownik_id, dziecko_id, wydarzenie_id)
@@ -475,9 +537,13 @@ exports.addDofinansowaniaFromFile = async (_req, res) => {
     console.error('Error processing file:', error.message);
     res.status(500).send('Błąd podczas dodawania danych z pliku');
   } finally {
+    if (filePath) fs.unlinkSync(filePath);
     await connection.close();
   }
 };
+
+// Middleware obsługujący przesyłanie pliku
+exports.uploadFile = upload.single('file');
 
 
 exports.deletePracownik = async (req, res) => {
@@ -913,226 +979,4 @@ exports.updateDofinansowanie = async (req, res) => {
     await connection.close();
   }
 };
-
-
-exports.getPracownikDofinansowanie = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_pracownik_dofinansowanie') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-exports.getPracownikPozyczka = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_pracownik_pozyczka') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-exports.getPracownikZapomoga = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_pracownik_zapomoga') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-exports.getPozyczkaRata = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_pozyczka_rata') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-exports.getPracownikDziecko = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_pracownik_dziecko') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-exports.getDofinansowanieDziecko = async (req, res) => {
-  const { tableName } = req.params;
-
-  // Sprawdzenie poprawności nazwy widoku
-  if (tableName != 'v_dofinansowanie_dziecko') {
-    return res.status(400).json({ error: 'Invalid view name.' });
-  }
-
-  let connection;
-  try {
-    connection = await connectToDatabase();
-    const query = `SELECT * FROM ${tableName}`;
-    const result = await connection.execute(query);
-    res.json({ data: result.rows, columns: result.metaData });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Failed to fetch data.' });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing connection:', err);
-      }
-    }
-  }
-};
-
-// -- Widok łączący pracowników z ich dofinansowaniami
-// CREATE OR REPLACE VIEW v_pracownik_dofinansowanie AS
-// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-//        d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, d.dziecko_id, d.wydarzenie_id
-// FROM pracownik p
-// JOIN dofinansowanie d ON p.id = d.pracownik_id;
-
-// -- Widok łączący pracowników z pożyczkami
-// CREATE OR REPLACE VIEW v_pracownik_pozyczka AS
-// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-//        po.id AS pozyczka_id, po.rodzaj, po.wysokosc
-// FROM pracownik p
-// JOIN pozyczka po ON p.id = po.pracownik_id;
-
-// -- Widok łączący pracowników z ich zapomogami
-// CREATE OR REPLACE VIEW v_pracownik_zapomoga AS
-// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-//        z.id AS zapomoga_id, z.cel, z.wysokosc
-// FROM pracownik p
-// JOIN zapomoga z ON p.id = z.pracownik_id;
-
-// -- Widok łączący pożyczki z ratami pożyczek
-// CREATE OR REPLACE VIEW v_pozyczka_rata AS
-// SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
-//        r.id AS rata_id, r.wysokosc AS rata_wysokosc, r.oplacona, r.termin_platnosci
-// FROM pozyczka po
-// JOIN rata_pozyczki r ON po.id = r.pozyczka_id;
-
-// -- Widok łączący pracowników z ich dziećmi
-// CREATE OR REPLACE VIEW v_pracownik_dziecko AS
-// SELECT p.id AS pracownik_id, p.nazwa, p.numer_konta, p.email, p.telefon, p.adres,
-//        d.id AS dziecko_id, d.nazwa AS dziecko_nazwa
-// FROM pracownik p
-// JOIN dziecko d ON p.id = d.pracownik_id;
-
-// -- Widok łączący dofinansowanie z dzieckiem (gdzie odbiorca = dziecko)
-// CREATE OR REPLACE VIEW v_dofinansowanie_dziecko AS
-// SELECT d.id AS dofinansowanie_id, d.odbiorca, d.prog, d.data_wyplacenia, d.rodzaj, 
-//        p.id AS pracownik_id, p.nazwa AS pracownik_nazwa,
-//        dz.id AS dziecko_id, dz.nazwa AS dziecko_nazwa
-// FROM dofinansowanie d
-// JOIN pracownik p ON d.pracownik_id = p.id
-// JOIN dziecko dz ON d.dziecko_id = dz.id
-// WHERE d.odbiorca = '1';
-
-// -- Widok łączący pożyczkę z jej żyrantem i pracownikami
-// CREATE OR REPLACE VIEW v_pozyczka_zyrant AS
-// SELECT po.id AS pozyczka_id, po.rodzaj, po.wysokosc,
-//        z.pracownik_id AS zyrant_id, p.nazwa AS zyrant_nazwa
-// FROM pozyczka po
-// JOIN zyrant z ON po.id = z.pozyczka_id
-// JOIN pracownik p ON z.pracownik_id = p.id;
 

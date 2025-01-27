@@ -53,17 +53,9 @@ const {
   addZapomogiFromFile,
   addWydarzeniaFromFile,
   addDofinansowaniaFromFile,
-} = require("../controllers/dataController");
 
-const {
-  getPracownikDofinansowanie,
-  getPracownikPozyczka,
-  getPracownikZapomoga,
-  getPozyczkaRata,
-  getPracownikDziecko,
-  getDofinansowanieDziecko,
-  getPozyczkaZyrant,
-}  = require("../controllers/dataController");
+  uploadFile,
+} = require("../controllers/dataController");
 
 const router = express.Router();
 
@@ -78,14 +70,14 @@ router.post("/addwydarzenie", addWydarzenie);
 router.post("/adddofinansowanie", addDofinansowanie);
 
 // Add multiple records from file
-router.post("/addpracownicy", addPracownicyFromFile);
-router.post("/adddzieci", addDzieciFromFile);
-router.post("/addpozyczki", addPozyczkiFromFile);
-router.post("/addraty_pozyczki" , addRatPozyczkiFromFile); // 
-router.post("/addzyranci", addZyranciFromFile);
-router.post("/addzapomogi", addZapomogiFromFile);
-router.post("/addwydarzenia", addWydarzeniaFromFile);
-router.post("/adddofinansowania", addDofinansowaniaFromFile); //
+router.post('/addpracownikfromfile', uploadFile, addPracownicyFromFile);
+router.post("/adddzieckofromfile", uploadFile, addDzieciFromFile);
+router.post("/addpozyczkafromfile", uploadFile, addPozyczkiFromFile);
+router.post("/addrata_pozyczkifromfile" , uploadFile, addRatPozyczkiFromFile); // 
+router.post("/addzyrantfromfile", uploadFile, addZyranciFromFile);
+router.post("/addzapomogafromfile", uploadFile, addZapomogiFromFile);
+router.post("/addwydarzeniefromfile", uploadFile, addWydarzeniaFromFile);
+router.post("/adddofinansowaniefromfile", uploadFile, addDofinansowaniaFromFile); //
 
 // Update records
 router.post("/updatepracownik/:id", updatePracownik); // Added update endpoint
@@ -106,30 +98,6 @@ router.post("/deletezyrant/:id", deleteZyrant);
 router.post("/deletezapomoga/:id", deleteZapomoga);
 router.post("/deletewydarzenie/:id", deleteWydarzenie);
 router.post("/deletedofinansowanie/:id", deleteDofinansowanie);
-
-// Get data from views
-router.get("/view/:tableName", (req, res) => {
-  const { tableName } = req.params;
-
-  switch (tableName) {
-    case 'v_pracownik_dofinansowanie':
-      return getPracownikDofinansowanie(req, res);
-    case 'v_pracownik_pozyczka':
-      return getPracownikPozyczka(req, res);
-    case 'v_pracownik_zapomoga':
-      return getPracownikZapomoga(req, res);
-    case 'v_pozyczka_rata':
-      return getPozyczkaRata(req, res);
-    case 'v_pracownik_dziecko':
-      return getPracownikDziecko(req, res);
-    case 'v_dofinansowanie_dziecko':
-      return getDofinansowanieDziecko(req, res);
-    case 'v_pozyczka_zyrant':
-      return getPozyczkaZyrant(req, res);
-    default:
-      return res.status(400).json({ error: 'Invalid view name.' });
-  }
-});
 
 router.get("/tables/:tableName", getTableData);
 router.get("/tables", getTables);
