@@ -173,7 +173,7 @@ exports.addZyrant = async (req, res) => {
     );
 
     const count = result.rows[0].COUNT;
-    if (count = 0) {
+    if (count == 0) {
       return res.status(400).send('Rekord pozyczki o podanym ID nie istnieje w tabeli POZYCZKA');
     }
 
