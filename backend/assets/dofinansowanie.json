@@ -1,6 +1,6 @@
 [
   {
-    "odbiorca": "0",
+    "odbiorca": "Odbiorca demo 1",
     "prog": 500,
     "data_wyplacenia": "26/01/2025",
     "rodzaj": "0",
@@ -9,7 +9,7 @@
     "wydarzenie_id": 2
   },
   {
-    "odbiorca": "1",
+    "odbiorca": "Odbiorca demo 2",
     "prog": 700,
     "data_wyplacenia": "26/01/2025",
     "rodzaj": "1",

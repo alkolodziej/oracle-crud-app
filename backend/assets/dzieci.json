@@ -1,14 +1,14 @@
 [
-    {
-      "nazwa": "Marek Kowalski",
-      "pracownik_id": 1
-    },
-    {
-      "nazwa": "Kasia Kowalska",
-      "pracownik_id": 1
-    },
-    {
-      "nazwa": "Zofia Nowak",
-      "pracownik_id": 2
-    }
-  ]
+  {
+    "nazwa": "Dziecko demo 1",
+    "pracownik_id": 1
+  },
+  {
+    "nazwa": "Dziecko demo 2",
+    "pracownik_id": 1
+  },
+  {
+    "nazwa": "Dziecko demo 3",
+    "pracownik_id": 2
+  }
+]

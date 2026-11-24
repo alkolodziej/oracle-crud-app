@@ -27,3 +27,8 @@ Thumbs.db
 
 # Coverage reports
 coverage/
+
+# Local configuration and temporary uploads
+.env.*
+!.env.example
+/backend/uploads/
